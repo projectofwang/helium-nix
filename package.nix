@@ -157,6 +157,8 @@ stdenv.mkDerivation {
       fi
     done
 
+    # Keep the upstream wrapper's environment/launcher semantics, but make its
+    # binary path absolute because the package is installed under /opt/helium.
     substituteInPlace $out/opt/helium/helium-wrapper \
       --replace-fail '$HERE/helium' "$out/opt/helium/helium"
 
@@ -164,6 +166,7 @@ stdenv.mkDerivation {
       --prefix LD_LIBRARY_PATH : "${libPath}" \
       --set ALSA_PLUGIN_DIR "${alsaPluginDirectory}" \
       --prefix PATH : "${makeBinPath [ xdg-utils coreutils ]}" \
+      --set CHROME_WRAPPER "$out/bin/helium" \
       --set CHROME_VERSION_EXTRA nix \
       --set FONTCONFIG_FILE "${fontsConf}" \
       --prefix XDG_DATA_DIRS : "${gsettings-desktop-schemas}/share:${adwaita-icon-theme}/share" \
