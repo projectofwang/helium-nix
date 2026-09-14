@@ -39,7 +39,7 @@
             mkdir -p $out/bin
             cat > $out/bin/helium <<'EOF'
             #!${pkgs.runtimeShell}
-            exec ${pkgs.coreutils}/bin/printf '%s\\n' "$@"
+            test "$1" = "--test-flag"
             EOF
             chmod +x $out/bin/helium
           '';
@@ -68,7 +68,7 @@
                 *)
                   echo "unexpected ELF interpreter for $binary: $interpreter" >&2
                   exit 1
-                  ;;
+                  ;
               esac
 
               rpath="$(patchelf --print-rpath "$binary")"
@@ -77,7 +77,7 @@
                 *:/usr/*:*|*:/lib/*:*|*:/lib64/*:*)
                   echo "non-Nix ELF RPATH for $binary: $rpath" >&2
                   exit 1
-                  ;;
+                  ;
               esac
 
               while IFS= read -r needed; do
@@ -85,7 +85,7 @@
                   /*)
                     echo "absolute ELF dependency for $binary: $needed" >&2
                     exit 1
-                    ;;
+                    ;
                 esac
               done < <(patchelf --print-needed "$binary")
             done
@@ -95,31 +95,30 @@
 
           custom-package-nixos-module =
             let
-              config =
-                (nixpkgs.lib.nixosSystem {
-                  inherit system;
-                  modules = [
-                    self.nixosModules.default
-                    {
-                      system.stateVersion = "25.11";
-                      fileSystems."/" = {
-                        device = "tmpfs";
-                        fsType = "tmpfs";
-                      };
-                      boot.loader.grub.devices = [ "/dev/sda" ];
-                      programs.helium = {
-                        enable = true;
-                        package = customPackage;
-                        flags = [ "--test-flag" ];
-                      };
-                      nixpkgs.hostPlatform = system;
-                    }
-                  ];
-                }).config.system.build.toplevel;
+              systemConfig = nixpkgs.lib.nixosSystem {
+                inherit system;
+                modules = [
+                  self.nixosModules.default
+                  {
+                    system.stateVersion = "25.11";
+                    fileSystems."/" = {
+                      device = "tmpfs";
+                      fsType = "tmpfs";
+                    };
+                    boot.loader.grub.devices = [ "/dev/sda" ];
+                    programs.helium = {
+                      enable = true;
+                      package = customPackage;
+                      flags = [ "--test-flag" ];
+                    };
+                    nixpkgs.hostPlatform = system;
+                  }
+                ];
+              };
+              package = builtins.head systemConfig.config.environment.systemPackages;
             in
             pkgs.runCommand "helium-custom-package-nixos-module" { } ''
-              echo ${config} >/dev/null
-              touch $out
+              ${package}/bin/helium --test-flag > $out
             '';
 
           custom-package-home-manager-module =
@@ -143,7 +142,7 @@
                 }).activationPackage;
             in
             pkgs.runCommand "helium-custom-package-home-manager-module" { } ''
-              echo ${activation} >/dev/null
+              grep -R --fixed-strings -- '--test-flag' ${activation}
               touch $out
             '';
 
