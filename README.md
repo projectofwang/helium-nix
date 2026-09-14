@@ -1,45 +1,49 @@
 # helium-nix
 
-Nix packaging for [Helium Browser](https://github.com/imputnet/helium-linux), with NixOS and Home Manager modules.
+Personal Nix packaging for Helium Browser, used with my `nixos-portable` configuration.
 
-## Design
+This repository is intentionally maintained for **personal use**. It is not intended to be a general-purpose Helium package, a distribution repository, or a promise of support for other systems.
 
-- Downloads only versioned upstream release artifacts from `imputnet/helium-linux`.
-- Uses separate immutable SHA-256 hashes for `x86_64-linux` and `aarch64-linux`.
-- Does not execute arbitrary network scripts during the build.
-- Keeps the package as a binary-native-code derivation; this repository does not claim to audit the Helium binary itself for malware.
+## Purpose
 
-The upstream project publishes release artifacts and states that its AppImage, binary tarballs, and Debian repository are signed with its published PGP key. Release `0.17.0.1` is immutable and provides distinct AMD64 and ARM64 Debian artifacts.
-
-## Flake outputs
-
-- `packages.<system>.helium`
-- `overlays.default`
-- `nixosModules.default`
-- `homeModules.default`
-
-Supported systems:
+`helium-nix` keeps the Helium binary packaging separate from `nixos-portable` while providing a small Nix interface for my machines:
 
 - `x86_64-linux`
 - `aarch64-linux`
+- NixOS module
+- Home Manager module
+- optional overlay
+- fixed upstream release artifacts and per-architecture hashes
 
-## NixOS
+The repository packages the upstream Helium binary; it does not contain the Helium browser source code.
+
+## Usage with nixos-portable
+
+`nixos-portable` consumes this repository as a flake input:
 
 ```nix
-inputs.helium.url = "github:projectofwang/helium-nix";
+helium = {
+  url = "github:projectofwang/helium-nix";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+```
 
-# In your system module:
+The Helium profile imports the NixOS module directly:
+
+```nix
 imports = [ inputs.helium.nixosModules.default ];
 
 programs.helium.enable = true;
 ```
 
-Optional policies:
+No overlay is required for the normal `nixos-portable` setup.
+
+## Package-only usage
 
 ```nix
-programs.helium.policies = {
-  BrowserSignin = 0;
-};
+environment.systemPackages = [
+  inputs.helium.packages.${pkgs.system}.helium
+];
 ```
 
 ## Home Manager
@@ -49,31 +53,33 @@ imports = [ inputs.helium.homeModules.default ];
 programs.helium.enable = true;
 ```
 
-## Package only
+## Personal configuration
 
-```nix
-environment.systemPackages = [
-  inputs.helium.packages.${pkgs.system}.helium
-];
-```
+The actual machine-specific choices belong in `nixos-portable`, not here. For example, Wayland flags and browser policies are configured by the `helium` profile there.
 
-## Security model
+This repository should remain focused on packaging and the reusable module interface.
 
-The important trust boundary is the upstream Helium binary. Nix fixed-output hashes provide artifact integrity/reproducibility after a hash has been reviewed; they do not prove that the upstream binary is benign.
+## Updating Helium
 
-For updates, review the upstream release, asset name, architecture, digest, and source changes before changing `package.nix`. Do not replace the fixed hashes with `lib.fakeHash` or floating URLs.
+Updates are intentionally conservative because this is a personal binary package.
 
-## Version updates
+1. Check the upstream Helium release.
+2. Confirm the release and artifact names.
+3. Confirm separate AMD64 and ARM64 artifacts.
+4. Update `version` and the corresponding hashes in `package.nix`.
+5. Run `nix flake check`.
+6. Build the architecture being used before updating `nixos-portable`'s lockfile.
 
-When updating Helium:
+Do not use floating release URLs or `lib.fakeHash`.
 
-1. Confirm the upstream release tag.
-2. Confirm the release is immutable.
-3. Confirm both Debian assets exist.
-4. Record the AMD64 and ARM64 SHA-256 digests independently.
-5. Update `version` and both hashes in `package.nix`.
-6. Run `nix flake check` and build the package on the target architecture(s).
+## Security / trust model
 
-## Relation to nixos-portable
+The package uses Nix fixed-output hashes for artifact integrity and reproducibility. This does **not** prove that the upstream Helium binary is free of malware or other unwanted behavior.
 
-Use this repository as a dedicated flake input in `nixos-portable`, instead of embedding the Helium package implementation there. This keeps the browser packaging lifecycle independent from the OS framework.
+The trust boundary is the upstream Helium release. Review upstream releases before changing the pinned version or hashes.
+
+## Scope
+
+This repository is intentionally small and opinionated for my own NixOS setup. Compatibility, APIs, module options, and update cadence may change when needed for `nixos-portable`.
+
+If you use this repository outside that configuration, treat it as an example rather than a supported package source.
