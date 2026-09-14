@@ -87,7 +87,7 @@ let
   source = sources.${stdenv.hostPlatform.system}
     or (throw "Unsupported system: ${stdenv.hostPlatform.system}");
 
-  inherit (lib) optional makeLibraryPath makeSearchPathOutput makeBinPath;
+  inherit (lib) optionalString makeLibraryPath makeSearchPathOutput makeBinPath;
 
   deps = [
     stdenv.cc.cc nss nspr libGL libgbm libdrm libxkbcommon
@@ -100,7 +100,7 @@ let
   ];
 
   libPath = makeLibraryPath deps
-    + optional (stdenv.hostPlatform.is64bit)
+    + optionalString stdenv.hostPlatform.is64bit
       (":" + makeSearchPathOutput "lib" "lib64" deps)
     + ":$out/opt/helium";
 
