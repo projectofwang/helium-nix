@@ -90,7 +90,7 @@ let
   inherit (lib) optionalString makeLibraryPath makeSearchPathOutput makeBinPath;
 
   deps = [
-    stdenv.cc.cc nss nspr libGL libgbm libdrm libxkbcommon
+    stdenv.cc.cc glib gtk3 gtk4 nss nspr libGL libgbm libdrm libxkbcommon
     libX11 libXcomposite libXdamage libXext libXfixes libXrandr
     libXrender libxcb libxshmfence libXi libXcursor libXft libXScrnSaver
     libXtst libSM libICE alsa-lib dbus cups ffmpeg libva pipewire wayland
