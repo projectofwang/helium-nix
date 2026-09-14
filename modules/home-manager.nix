@@ -2,6 +2,7 @@
 
 let
   cfg = config.programs.helium;
+  defaultPackage = pkgs.callPackage ../package.nix { };
   package = cfg.package.override { flags = cfg.flags; };
 in {
   options.programs.helium = {
@@ -9,8 +10,8 @@ in {
 
     package = lib.mkOption {
       type = lib.types.package;
-      default = pkgs.helium;
-      defaultText = lib.literalExpression "pkgs.helium";
+      default = defaultPackage;
+      defaultText = lib.literalExpression "inputs.helium.packages.\${pkgs.system}.helium";
       description = "Helium package to install.";
     };
 
