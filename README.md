@@ -71,7 +71,7 @@ programs.helium.enable = true;
 7. sửa desktop entry và icon;
 8. thêm runtime library path, ALSA plugin path, fontconfig và các flags được cấu hình.
 
-Package hiện dùng version `0.17.0.1`, với hash độc lập cho AMD64 và ARM64. fileciteturn95file0L2-L2
+Package hiện dùng version `0.17.0.1`, với hash độc lập cho AMD64 và ARM64.
 
 ## Module
 
@@ -84,9 +84,11 @@ programs.helium.flags = [ ... ];
 programs.helium.policies = { ... };
 ```
 
-Module không yêu cầu overlay để hoạt động; package được tạo trực tiếp từ `package.nix`. fileciteturn96file0L2-L2
+Module không yêu cầu overlay để hoạt động; package được tạo trực tiếp từ `package.nix`.
 
-Home Manager cung cấp cùng interface cơ bản và cài package vào `home.packages`. fileciteturn97file0L2-L2
+Home Manager cung cấp cùng interface cơ bản và cài package vào `home.packages`.
+
+Managed policies trên NixOS được ghi vào `/etc/chromium/policies/managed/`, phù hợp với đường dẫn policy Linux của Chromium. Home Manager ghi policy vào `~/.config/helium/policies/managed/`; đây là cơ chế user-level và không nên được coi là equivalent với managed system policy cho các policy quan trọng.
 
 ## Cập nhật Helium
 
@@ -102,13 +104,11 @@ Home Manager cung cấp cùng interface cơ bản và cài package vào `home.pa
 
 Không dùng release URL trôi nổi và không dùng `lib.fakeHash` trong commit cuối.
 
-
-
 ## Flake
 
-Flake chỉ dùng `nixpkgs` làm input và expose package, overlay, NixOS module, Home Manager module, checks và formatter cho hai architecture. fileciteturn94file0L2-L2
+Flake dùng `nixpkgs` và `home-manager` làm inputs, với Home Manager được cấu hình để follow cùng `nixpkgs`. Nó expose package, overlay, NixOS module, Home Manager module, checks và formatter cho `x86_64-linux` và `aarch64-linux`.
 
-`flake.lock` của repository này pin `nixpkgs` độc lập với lockfile của `nixos-portable`, nhưng hai repository hiện được cấu hình để follow cùng `nixpkgs` revision khi được dùng làm input. fileciteturn116file0L2-L2
+`flake.lock` của repository này pin các inputs độc lập với lockfile của `nixos-portable`. Khi được dùng làm input của `nixos-portable`, input `nixpkgs` của Helium được cấu hình để follow `nixos-portable`'s `nixpkgs`.
 
 ## Phạm vi sử dụng
 
