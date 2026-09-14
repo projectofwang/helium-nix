@@ -1,0 +1,137 @@
+name: Update Helium
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-helium
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Read latest Helium Linux release
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_json="$(curl --fail --silent --show-error --location \
+            --retry 3 \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            https://api.github.com/repos/imputnet/helium-linux/releases/latest)"
+          latest="$(jq -r '.tag_name' <<<"$release_json")"
+
+          if [[ ! "$latest" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "Unexpected Helium release tag: $latest" >&2
+            exit 1
+          fi
+
+          current="$(sed -n 's/^[[:space:]]*version = "\([^"]*\)";$/\1/p' package.nix)"
+          if [[ -z "$current" ]]; then
+            echo "Could not determine current package version" >&2
+            exit 1
+          fi
+
+          echo "current=$current"
+          echo "latest=$latest"
+          echo "version=$latest" >> "$GITHUB_OUTPUT"
+          echo "changed=$([[ "$current" != "$latest" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Update package source
+        if: steps.release.outputs.changed == 'true'
+        shell: bash
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          asset="helium-bin_${VERSION}-1_amd64.deb"
+          url="https://github.com/imputnet/helium-linux/releases/download/${VERSION}/${asset}"
+          tmp="$(mktemp --suffix=.deb)"
+          trap 'rm -f "$tmp"' EXIT
+
+          curl --fail --silent --show-error --location \
+            --retry 3 \
+            --output "$tmp" \
+            "$url"
+
+          hash="$(nix hash file --type sha256 --sri "$tmp")"
+
+          python3 - "$VERSION" "$hash" <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          version, hash_value = sys.argv[1:]
+          path = Path("package.nix")
+          text = path.read_text()
+
+          version_pattern = r'(?m)^(\\s*version = ")[^"]+(";)$'
+          hash_pattern = r'(?m)^(\\s*hash = ")[^"]+(";)$'
+
+          text, version_count = re.subn(version_pattern, rf'\\g<1>{version}\\g<2>', text, count=1)
+          text, hash_count = re.subn(hash_pattern, rf'\\g<1>{hash_value}\\g<2>', text, count=1)
+
+          if version_count != 1 or hash_count != 1:
+              raise SystemExit("package.nix version/hash fields were not updated exactly once")
+
+          path.write_text(text)
+          PY
+
+          nixfmt package.nix
+
+          echo "Updated Helium to ${VERSION} with Nix-computed source hash ${hash}."
+
+      - name: Create update pull request
+        if: steps.release.outputs.changed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- package.nix; then
+            echo "No package change after source update."
+            exit 0
+          fi
+
+          branch="automation/helium-${VERSION}"
+          git switch -c "$branch"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.nix
+          git commit -m "chore: update Helium to ${VERSION}"
+
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --set-upstream origin "$branch"
+
+          if gh pr list --head "$branch" --state open --json number --jq 'length' | grep -q '^0$'; then
+            gh pr create \
+              --base main \
+              --head "$branch" \
+              --title "chore: update Helium to ${VERSION}" \
+              --body "Automated update to the latest Helium Linux release (${VERSION}). The upstream AMD64 .deb was downloaded from the official Helium Linux release and its SHA-256 SRI hash was computed by Nix. CI must pass before merge."
+          fi
