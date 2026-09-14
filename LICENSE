@@ -3,15 +3,21 @@ Version 3, 29 June 2007
 
 Copyright (C) 2026 helium-nix contributors
 
+SPDX-License-Identifier: GPL-3.0-only
+
 This repository's original packaging and integration code is licensed under
 the GNU General Public License, version 3 only (GPL-3.0-only).
 
-The full text of the GNU General Public License, version 3, is available from
-the Free Software Foundation.
+This file is a license notice and identifier; it is not a verbatim copy of
+the GPL-3.0 license text. The complete license text is available from the
+Free Software Foundation at:
+https://www.gnu.org/licenses/gpl-3.0.txt
 
-Important upstream notice:
+Upstream notice:
 
 This repository packages the official Helium Linux binary and does not claim
 ownership of Helium or its upstream source code. The packaged Helium browser,
-Chromium-derived components, and other third-party software remain subject to
-their respective upstream licenses and notices.
+Chromium-derived components, ungoogled-chromium code, and other third-party
+software remain subject to their respective upstream licenses and notices.
+See LICENSE.ungoogled_chromium and the upstream Helium repository for the
+applicable notices and license terms.
