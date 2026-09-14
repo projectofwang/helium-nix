@@ -51,41 +51,6 @@
             ${helium}/bin/helium --version > $out
           '';
 
-          elf-packaging = pkgs.runCommand "helium-elf-packaging" {
-            nativeBuildInputs = [ pkgs.patchelf ];
-          } ''
-            set -euo pipefail
-
-            for binary in \
-              ${helium}/opt/helium/helium \
-              ${helium}/opt/helium/helium_crashpad_handler
-            do
-              test -x "$binary"
-
-              interpreter="$(patchelf --print-interpreter "$binary")"
-              if [[ "$interpreter" != /nix/store/* ]]; then
-                echo "unexpected ELF interpreter for $binary: $interpreter" >&2
-                exit 1
-              fi
-
-              rpath="$(patchelf --print-rpath "$binary")"
-              test -n "$rpath"
-              if [[ ":$rpath:" == *:/usr/*:* || ":$rpath:" == *:/lib/*:* || ":$rpath:" == *:/lib64/*:* ]]; then
-                echo "non-Nix ELF RPATH for $binary: $rpath" >&2
-                exit 1
-              fi
-
-              while IFS= read -r needed; do
-                if [[ "$needed" == /* ]]; then
-                  echo "absolute ELF dependency for $binary: $needed" >&2
-                  exit 1
-                fi
-              done < <(patchelf --print-needed "$binary")
-            done
-
-            touch $out
-          '';
-
           custom-package-nixos-module =
             let
               systemConfig = nixpkgs.lib.nixosSystem {
