@@ -72,7 +72,24 @@ programs.helium.enable = true;
 7. sửa desktop entry và icon;
 8. thêm runtime library path, ALSA plugin path, fontconfig và các flags được cấu hình.
 
-Package hiện dùng version `0.17.0.1` và artifact `amd64`.
+Version trong `package.nix` luôn phải tương ứng với release mới nhất của `imputnet/helium-linux` và artifact AMD64 tương ứng.
+
+## Cập nhật Helium tự động
+
+Workflow `.github/workflows/update-helium.yml` kiểm tra release mới nhất của upstream `imputnet/helium-linux` mỗi ngày và có thể chạy thủ công.
+
+Khi upstream có version mới, workflow:
+
+1. đọc release mới nhất từ GitHub API;
+2. tải đúng artifact `helium-bin_<version>-1_amd64.deb` từ release chính thức;
+3. tính SHA-256 SRI hash bằng Nix;
+4. cập nhật version + hash trong `package.nix`;
+5. tạo pull request tự động;
+6. để CI kiểm tra package, runtime smoke test và các module trước khi merge.
+
+Như vậy `helium-nix` không còn phụ thuộc vào việc cập nhật version thủ công. Việc merge vẫn được giữ sau CI để tránh tự động đưa một upstream release hỏng vào `main`.
+
+Không dùng release URL trôi nổi và không dùng `lib.fakeHash` trong commit cuối.
 
 ## Module
 
@@ -90,19 +107,6 @@ Module không yêu cầu overlay để hoạt động; package được tạo tr
 Home Manager cung cấp cùng interface cơ bản và cài package vào `home.packages`.
 
 Managed policies trên NixOS được ghi vào `/etc/chromium/policies/managed/`, phù hợp với đường dẫn policy Linux của Chromium. Home Manager ghi policy vào `~/.config/helium/policies/managed/`; đây là cơ chế user-level và không nên được coi là equivalent với managed system policy cho các policy quan trọng.
-
-## Cập nhật Helium
-
-Đây là binary package cá nhân nên update phải có kiểm soát:
-
-1. kiểm tra release upstream;
-2. xác nhận version và tên artifact AMD64;
-3. cập nhật version + hash trong `package.nix`;
-4. chạy `nix flake check`;
-5. build `x86_64-linux`;
-6. sau đó mới cập nhật lockfile của `nixos-portable`.
-
-Không dùng release URL trôi nổi và không dùng `lib.fakeHash` trong commit cuối.
 
 ## Flake
 
