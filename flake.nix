@@ -3,9 +3,13 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, home-manager }:
     let
       systems = [ "x86_64-linux" "aarch64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
@@ -22,25 +26,54 @@
       nixosModules.default = import ./modules/nixos.nix;
       homeModules.default = import ./modules/home-manager.nix;
 
-      checks = forAllSystems (system: {
-        package = self.packages.${system}.helium;
+      checks = forAllSystems (system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          helium = self.packages.${system}.helium;
+        in {
+          package = helium;
 
-        nixos-module =
-          let
-            pkgs = nixpkgs.legacyPackages.${system};
-          in
-          (nixpkgs.lib.nixosSystem {
-            inherit system;
-            modules = [
-              self.nixosModules.default
-              {
-                programs.helium.enable = true;
-                programs.helium.flags = [ "--ozone-platform=wayland" ];
-                nixpkgs.hostPlatform = system;
-              }
-            ];
-          }).config.system.build.toplevel;
-      });
+          runtime-smoke = pkgs.runCommand "helium-runtime-smoke" { } ''
+            ${helium}/bin/helium --version > $out
+          '';
+
+          nixos-module =
+            (nixpkgs.lib.nixosSystem {
+              inherit system;
+              modules = [
+                self.nixosModules.default
+                {
+                  programs.helium.enable = true;
+                  programs.helium.flags = [ "--ozone-platform=wayland" ];
+                  programs.helium.policies = {
+                    BrowserSignin = 0;
+                    ExtensionInstallBlocklist = [ "*" ];
+                  };
+                  nixpkgs.hostPlatform = system;
+                }
+              ];
+            }).config.system.build.toplevel;
+
+          home-manager-module =
+            (home-manager.lib.homeManagerConfiguration {
+              inherit pkgs;
+              modules = [
+                self.homeModules.default
+                {
+                  home.username = "ci";
+                  home.homeDirectory = "/home/ci";
+                  home.stateVersion = "25.11";
+                  programs.helium.enable = true;
+                  programs.helium.flags = [ "--ozone-platform=wayland" ];
+                  programs.helium.policies = {
+                    BrowserSignin = 0;
+                    ExtensionInstallBlocklist = [ "*" ];
+                  };
+                }
+              ];
+            }).activationPackage;
+        });
 
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
     };
+}
