@@ -102,13 +102,7 @@ Home Manager cung cấp cùng interface cơ bản và cài package vào `home.pa
 
 Không dùng release URL trôi nổi và không dùng `lib.fakeHash` trong commit cuối.
 
-## Bảo mật và trust model
 
-Nix fixed-output hash giúp xác nhận artifact nhận được đúng với artifact đã pin và giúp build tái lập hơn. Nó **không chứng minh binary Helium upstream không chứa malware hoặc hành vi không mong muốn**.
-
-Trust boundary chính là release upstream và repository packaging này. Khi đổi version hoặc hash, cần review release tương ứng trước khi đưa vào cấu hình máy.
-
-Package khai báo `sourceProvenance = [ lib.sourceTypes.binaryNativeCode ]` để phản ánh đúng rằng artifact là binary native code. fileciteturn95file0L2-L2
 
 ## Flake
 
