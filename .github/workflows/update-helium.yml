@@ -100,8 +100,6 @@ jobs:
           path.write_text(text)
           PY
 
-          nixfmt package.nix
-
           echo "Updated Helium to ${VERSION} with Nix-computed source hash ${hash}."
 
       - name: Create update pull request
