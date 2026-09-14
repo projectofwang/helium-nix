@@ -21,7 +21,7 @@ in {
     package = lib.mkOption {
       type = lib.types.package;
       default = defaultPackage;
-      defaultText = lib.literalExpression "inputs.helium.packages.\${pkgs.system}.helium";
+      defaultText = lib.literalExpression "pkgs.callPackage ../package.nix { }";
       description = "Helium package to install.";
     };
 
