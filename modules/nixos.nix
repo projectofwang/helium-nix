@@ -3,7 +3,17 @@
 let
   cfg = config.programs.helium;
   defaultPackage = pkgs.callPackage ../package.nix { };
-  package = cfg.package.override { flags = cfg.flags; };
+  package =
+    pkgs.symlinkJoin {
+      name = "helium-with-flags";
+      paths = [ cfg.package ];
+      nativeBuildInputs = [ pkgs.makeWrapper ];
+      postBuild = ''
+        rm -f $out/bin/helium
+        makeWrapper ${cfg.package}/bin/helium $out/bin/helium \
+          ${lib.concatMapStringsSep " " (flag: "--add-flags ${lib.escapeShellArg flag}") cfg.flags}
+      '';
+    };
 in {
   options.programs.helium = {
     enable = lib.mkEnableOption "Helium Browser";
