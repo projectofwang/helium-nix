@@ -4,7 +4,6 @@
 , dpkg
 , patchelf
 , makeWrapper
-, wrapGAppsHook3
 , makeFontsConf
 , symlinkJoin
 , qt6
@@ -123,7 +122,7 @@ stdenv.mkDerivation {
   dontStrip = true;
 
   nativeBuildInputs = [
-    patchelf makeWrapper wrapGAppsHook3 qt6.wrapQtAppsHook dpkg binutils
+    patchelf makeWrapper qt6.wrapQtAppsHook dpkg binutils
   ];
 
   dontWrapQtApps = true;
@@ -161,7 +160,15 @@ stdenv.mkDerivation {
     substituteInPlace $out/opt/helium/helium-wrapper \
       --replace-fail '$HERE/helium' "$out/opt/helium/helium"
 
-    ln -sf $out/opt/helium/helium-wrapper $out/bin/helium
+    makeWrapper "$out/opt/helium/helium" "$out/bin/helium" \
+      --prefix LD_LIBRARY_PATH : "${libPath}" \
+      --set ALSA_PLUGIN_DIR "${alsaPluginDirectory}" \
+      --prefix PATH : "${makeBinPath [ xdg-utils coreutils ]}" \
+      --set CHROME_VERSION_EXTRA nix \
+      --set FONTCONFIG_FILE "${fontsConf}" \
+      --prefix XDG_DATA_DIRS : "${gsettings-desktop-schemas}/share:${adwaita-icon-theme}/share" \
+      --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto}}" \
+      ${lib.concatMapStringsSep "\n      " (f: "--add-flags \"${f}\"") flags}
 
     substituteInPlace $out/share/applications/helium.desktop \
       --replace-fail 'Exec=helium' "Exec=$out/bin/helium" \
@@ -174,18 +181,6 @@ stdenv.mkDerivation {
       cp $out/opt/helium/product_logo.png $out/share/icons/hicolor/256x256/apps/helium.png
     fi
     runHook postInstall
-  '';
-
-  preFixup = ''
-    gappsWrapperArgs+=(
-      --prefix LD_LIBRARY_PATH : "${libPath}"
-      --set ALSA_PLUGIN_DIR "${alsaPluginDirectory}"
-      --prefix PATH : "${makeBinPath [ xdg-utils coreutils ]}"
-      --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto}}"
-      --set CHROME_VERSION_EXTRA nix
-      --set FONTCONFIG_FILE "${fontsConf}"
-      ${lib.concatMapStringsSep "\n      " (f: "--add-flags \"${f}\"") flags}
-    )
   '';
 
   meta = {
