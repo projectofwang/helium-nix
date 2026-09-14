@@ -8,13 +8,14 @@ Repository này không phải package Helium tổng quát hay dự án có compa
 
 Repository cung cấp:
 
-- package `helium` cho `x86_64-linux` và `aarch64-linux`;
+- package `helium` cho `x86_64-linux`;
 - NixOS module;
 - Home Manager module;
-- overlay tùy chọn;
-- fixed-output hash riêng cho từng artifact upstream.
+- overlay tùy chọn.
 
 Repository **không chứa source code Helium**. Package lấy binary `.deb` từ release upstream và đóng gói lại cho môi trường Nix.
+
+Kiến trúc ngoài `x86_64-linux` không thuộc phạm vi hỗ trợ của repository này. Đặc biệt, không giả lập hỗ trợ 32-bit hoặc ARM khi upstream không cung cấp artifact tương ứng.
 
 ## Dùng với nixos-portable
 
@@ -62,7 +63,7 @@ programs.helium.enable = true;
 
 `package.nix` hiện:
 
-1. tải artifact `.deb` theo architecture;
+1. tải artifact `.deb` AMD64 từ release upstream;
 2. kiểm tra fixed-output hash của artifact;
 3. giải nén bằng `ar`/`tar`;
 4. đưa Helium vào `/opt/helium`;
@@ -71,7 +72,7 @@ programs.helium.enable = true;
 7. sửa desktop entry và icon;
 8. thêm runtime library path, ALSA plugin path, fontconfig và các flags được cấu hình.
 
-Package hiện dùng version `0.17.0.1`, với hash độc lập cho AMD64 và ARM64.
+Package hiện dùng version `0.17.0.1` và artifact `amd64`.
 
 ## Module
 
@@ -95,18 +96,17 @@ Managed policies trên NixOS được ghi vào `/etc/chromium/policies/managed/`
 Đây là binary package cá nhân nên update phải có kiểm soát:
 
 1. kiểm tra release upstream;
-2. xác nhận version và tên artifact;
-3. xác nhận artifact AMD64 và ARM64 riêng biệt;
-4. cập nhật version + hash tương ứng trong `package.nix`;
-5. chạy `nix flake check`;
-6. build architecture đang sử dụng;
-7. sau đó mới cập nhật lockfile của `nixos-portable`.
+2. xác nhận version và tên artifact AMD64;
+3. cập nhật version + hash trong `package.nix`;
+4. chạy `nix flake check`;
+5. build `x86_64-linux`;
+6. sau đó mới cập nhật lockfile của `nixos-portable`.
 
 Không dùng release URL trôi nổi và không dùng `lib.fakeHash` trong commit cuối.
 
 ## Flake
 
-Flake dùng `nixpkgs` và `home-manager` làm inputs, với Home Manager được cấu hình để follow cùng `nixpkgs`. Nó expose package, overlay, NixOS module, Home Manager module, checks và formatter cho `x86_64-linux` và `aarch64-linux`.
+Flake dùng `nixpkgs` và `home-manager` làm inputs, với Home Manager được cấu hình để follow cùng `nixpkgs`. Nó expose package, overlay, NixOS module, Home Manager module, checks và formatter cho `x86_64-linux`.
 
 `flake.lock` của repository này pin các inputs độc lập với lockfile của `nixos-portable`. Khi được dùng làm input của `nixos-portable`, input `nixpkgs` của Helium được cấu hình để follow `nixos-portable`'s `nixpkgs`.
 
