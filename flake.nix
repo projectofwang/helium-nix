@@ -9,11 +9,16 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager }:
+  outputs = inputs@{
+    self,
+    nixpkgs,
+    home-manager,
+  }:
     let
       systems = [ "x86_64-linux" "aarch64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
-    in {
+    in
+    {
       packages = forAllSystems (system: {
         helium = nixpkgs.legacyPackages.${system}.callPackage ./package.nix { };
         default = self.packages.${system}.helium;
@@ -30,7 +35,8 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
           helium = self.packages.${system}.helium;
-        in {
+        in
+        {
           package = helium;
 
           runtime-smoke = pkgs.runCommand "helium-runtime-smoke" { } ''
