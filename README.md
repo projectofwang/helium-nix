@@ -1,25 +1,25 @@
 # helium-nix
 
-Personal Nix packaging for Helium Browser, used with my `nixos-portable` configuration.
+Đóng gói Helium Browser bằng Nix cho mục đích **sử dụng cá nhân**, được dùng cùng cấu hình `nixos-portable` của tôi.
 
-This repository is intentionally maintained for **personal use**. It is not intended to be a general-purpose Helium package, a distribution repository, or a promise of support for other systems.
+Repository này được duy trì dành riêng cho **personal use**. Đây không phải package Helium tổng quát, kho phân phối, hay dự án có cam kết hỗ trợ cho các hệ thống khác.
 
-## Purpose
+## Mục đích
 
-`helium-nix` keeps the Helium binary packaging separate from `nixos-portable` while providing a small Nix interface for my machines:
+`helium-nix` tách phần đóng gói Helium khỏi `nixos-portable`, đồng thời cung cấp giao diện Nix nhỏ gọn cho các máy của tôi:
 
 - `x86_64-linux`
 - `aarch64-linux`
 - NixOS module
 - Home Manager module
-- optional overlay
-- fixed upstream release artifacts and per-architecture hashes
+- overlay tùy chọn
+- artifact upstream được cố định bằng version và hash riêng cho từng kiến trúc
 
-The repository packages the upstream Helium binary; it does not contain the Helium browser source code.
+Repository này đóng gói binary Helium từ upstream; không chứa source code của Helium Browser.
 
-## Usage with nixos-portable
+## Sử dụng với nixos-portable
 
-`nixos-portable` consumes this repository as a flake input:
+`nixos-portable` sử dụng repository này làm flake input:
 
 ```nix
 helium = {
@@ -28,7 +28,7 @@ helium = {
 };
 ```
 
-The Helium profile imports the NixOS module directly:
+Profile Helium import NixOS module trực tiếp:
 
 ```nix
 imports = [ inputs.helium.nixosModules.default ];
@@ -36,9 +36,9 @@ imports = [ inputs.helium.nixosModules.default ];
 programs.helium.enable = true;
 ```
 
-No overlay is required for the normal `nixos-portable` setup.
+Cấu hình `nixos-portable` thông thường không cần overlay.
 
-## Package-only usage
+## Chỉ sử dụng package
 
 ```nix
 environment.systemPackages = [
@@ -53,33 +53,38 @@ imports = [ inputs.helium.homeModules.default ];
 programs.helium.enable = true;
 ```
 
-## Personal configuration
+## Phân tách cấu hình cá nhân
 
-The actual machine-specific choices belong in `nixos-portable`, not here. For example, Wayland flags and browser policies are configured by the `helium` profile there.
+Các lựa chọn phụ thuộc vào từng máy thuộc về `nixos-portable`, không thuộc repository này. Ví dụ, Wayland flags và browser policies được cấu hình trong profile `helium` của `nixos-portable`.
 
-This repository should remain focused on packaging and the reusable module interface.
+Repository này nên giữ phạm vi tập trung vào:
 
-## Updating Helium
+- đóng gói Helium;
+- NixOS module;
+- Home Manager module;
+- giao diện package/overlay cần thiết cho cấu hình cá nhân.
 
-Updates are intentionally conservative because this is a personal binary package.
+## Cập nhật Helium
 
-1. Check the upstream Helium release.
-2. Confirm the release and artifact names.
-3. Confirm separate AMD64 and ARM64 artifacts.
-4. Update `version` and the corresponding hashes in `package.nix`.
-5. Run `nix flake check`.
-6. Build the architecture being used before updating `nixos-portable`'s lockfile.
+Việc cập nhật được thực hiện thận trọng vì đây là binary package phục vụ cấu hình cá nhân.
 
-Do not use floating release URLs or `lib.fakeHash`.
+1. Kiểm tra release Helium upstream.
+2. Xác nhận release và tên artifact.
+3. Xác nhận artifact AMD64 và ARM64 riêng biệt.
+4. Cập nhật `version` và hash tương ứng trong `package.nix`.
+5. Chạy `nix flake check`.
+6. Build kiến trúc đang sử dụng trước khi cập nhật lockfile của `nixos-portable`.
 
-## Security / trust model
+Không sử dụng release URL trôi nổi hoặc `lib.fakeHash`.
 
-The package uses Nix fixed-output hashes for artifact integrity and reproducibility. This does **not** prove that the upstream Helium binary is free of malware or other unwanted behavior.
+## Bảo mật và mô hình tin cậy
 
-The trust boundary is the upstream Helium release. Review upstream releases before changing the pinned version or hashes.
+Package sử dụng fixed-output hash của Nix để đảm bảo tính toàn vẹn và khả năng tái lập của artifact. Điều này **không chứng minh** binary Helium upstream không chứa malware hoặc hành vi không mong muốn.
 
-## Scope
+Điểm tin cậy nằm ở release Helium upstream. Trước khi thay đổi version hoặc hash, cần xem xét release upstream tương ứng.
 
-This repository is intentionally small and opinionated for my own NixOS setup. Compatibility, APIs, module options, and update cadence may change when needed for `nixos-portable`.
+## Phạm vi
 
-If you use this repository outside that configuration, treat it as an example rather than a supported package source.
+Repository này nhỏ và mang tính cá nhân, được thiết kế theo nhu cầu của cấu hình NixOS của tôi. Compatibility, API, module options và chu kỳ cập nhật có thể thay đổi bất cứ lúc nào để phục vụ `nixos-portable`.
+
+Nếu sử dụng repository này ngoài cấu hình đó, hãy xem nó như một ví dụ hoặc package cá nhân, không phải nguồn package được hỗ trợ chính thức.
