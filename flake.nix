@@ -118,6 +118,7 @@
                 }).config.system.build.toplevel;
             in
             pkgs.runCommand "helium-custom-package-nixos-module" { } ''
+              echo ${config} >/dev/null
               touch $out
             '';
 
@@ -142,6 +143,7 @@
                 }).activationPackage;
             in
             pkgs.runCommand "helium-custom-package-home-manager-module" { } ''
+              echo ${activation} >/dev/null
               touch $out
             '';
 
