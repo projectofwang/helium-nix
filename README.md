@@ -1,25 +1,24 @@
 # helium-nix
 
-Đóng gói Helium Browser bằng Nix cho mục đích **sử dụng cá nhân**, được dùng cùng cấu hình `nixos-portable` của tôi.
+Đóng gói **Helium Browser** bằng Nix, dành riêng cho cấu hình NixOS cá nhân của tôi.
 
-Repository này được duy trì dành riêng cho **personal use**. Đây không phải package Helium tổng quát, kho phân phối, hay dự án có cam kết hỗ trợ cho các hệ thống khác.
+Repository này không phải package Helium tổng quát hay dự án có compatibility/support contract. Nó tồn tại chủ yếu để tách binary packaging của Helium khỏi `nixos-portable`.
 
-## Mục đích
+## Phạm vi
 
-`helium-nix` tách phần đóng gói Helium khỏi `nixos-portable`, đồng thời cung cấp giao diện Nix nhỏ gọn cho các máy của tôi:
+Repository cung cấp:
 
-- `x86_64-linux`
-- `aarch64-linux`
-- NixOS module
-- Home Manager module
-- overlay tùy chọn
-- artifact upstream được cố định bằng version và hash riêng cho từng kiến trúc
+- package `helium` cho `x86_64-linux` và `aarch64-linux`;
+- NixOS module;
+- Home Manager module;
+- overlay tùy chọn;
+- fixed-output hash riêng cho từng artifact upstream.
 
-Repository này đóng gói binary Helium từ upstream; không chứa source code của Helium Browser.
+Repository **không chứa source code Helium**. Package lấy binary `.deb` từ release upstream và đóng gói lại cho môi trường Nix.
 
-## Sử dụng với nixos-portable
+## Dùng với nixos-portable
 
-`nixos-portable` sử dụng repository này làm flake input:
+`nixos-portable` dùng repository này làm flake input:
 
 ```nix
 helium = {
@@ -28,7 +27,7 @@ helium = {
 };
 ```
 
-Profile Helium import NixOS module trực tiếp:
+Profile Helium dùng NixOS module trực tiếp:
 
 ```nix
 imports = [ inputs.helium.nixosModules.default ];
@@ -36,14 +35,20 @@ imports = [ inputs.helium.nixosModules.default ];
 programs.helium.enable = true;
 ```
 
-Cấu hình `nixos-portable` thông thường không cần overlay.
+Cấu hình machine-specific như Wayland flags và browser policies nằm ở `nixos-portable`, không nằm trong package repository này.
 
-## Chỉ sử dụng package
+## Chỉ dùng package
 
 ```nix
 environment.systemPackages = [
   inputs.helium.packages.${pkgs.system}.helium
 ];
+```
+
+Hoặc dùng package mặc định của flake:
+
+```bash
+nix build .#helium
 ```
 
 ## Home Manager
@@ -53,38 +58,66 @@ imports = [ inputs.helium.homeModules.default ];
 programs.helium.enable = true;
 ```
 
-## Phân tách cấu hình cá nhân
+## Package layout
 
-Các lựa chọn phụ thuộc vào từng máy thuộc về `nixos-portable`, không thuộc repository này. Ví dụ, Wayland flags và browser policies được cấu hình trong profile `helium` của `nixos-portable`.
+`package.nix` hiện:
 
-Repository này nên giữ phạm vi tập trung vào:
+1. tải artifact `.deb` theo architecture;
+2. kiểm tra fixed-output hash của artifact;
+3. giải nén bằng `ar`/`tar`;
+4. đưa Helium vào `/opt/helium`;
+5. patch interpreter và RPATH bằng `patchelf`;
+6. tạo launcher tại `$out/bin/helium`;
+7. sửa desktop entry và icon;
+8. thêm runtime library path, ALSA plugin path, fontconfig và các flags được cấu hình.
 
-- đóng gói Helium;
-- NixOS module;
-- Home Manager module;
-- giao diện package/overlay cần thiết cho cấu hình cá nhân.
+Package hiện dùng version `0.17.0.1`, với hash độc lập cho AMD64 và ARM64. fileciteturn95file0L2-L2
+
+## Module
+
+NixOS module cung cấp:
+
+```nix
+programs.helium.enable = true;
+programs.helium.package = ...;
+programs.helium.flags = [ ... ];
+programs.helium.policies = { ... };
+```
+
+Module không yêu cầu overlay để hoạt động; package được tạo trực tiếp từ `package.nix`. fileciteturn96file0L2-L2
+
+Home Manager cung cấp cùng interface cơ bản và cài package vào `home.packages`. fileciteturn97file0L2-L2
 
 ## Cập nhật Helium
 
-Việc cập nhật được thực hiện thận trọng vì đây là binary package phục vụ cấu hình cá nhân.
+Đây là binary package cá nhân nên update phải có kiểm soát:
 
-1. Kiểm tra release Helium upstream.
-2. Xác nhận release và tên artifact.
-3. Xác nhận artifact AMD64 và ARM64 riêng biệt.
-4. Cập nhật `version` và hash tương ứng trong `package.nix`.
-5. Chạy `nix flake check`.
-6. Build kiến trúc đang sử dụng trước khi cập nhật lockfile của `nixos-portable`.
+1. kiểm tra release upstream;
+2. xác nhận version và tên artifact;
+3. xác nhận artifact AMD64 và ARM64 riêng biệt;
+4. cập nhật version + hash tương ứng trong `package.nix`;
+5. chạy `nix flake check`;
+6. build architecture đang sử dụng;
+7. sau đó mới cập nhật lockfile của `nixos-portable`.
 
-Không sử dụng release URL trôi nổi hoặc `lib.fakeHash`.
+Không dùng release URL trôi nổi và không dùng `lib.fakeHash` trong commit cuối.
 
-## Bảo mật và mô hình tin cậy
+## Bảo mật và trust model
 
-Package sử dụng fixed-output hash của Nix để đảm bảo tính toàn vẹn và khả năng tái lập của artifact. Điều này **không chứng minh** binary Helium upstream không chứa malware hoặc hành vi không mong muốn.
+Nix fixed-output hash giúp xác nhận artifact nhận được đúng với artifact đã pin và giúp build tái lập hơn. Nó **không chứng minh binary Helium upstream không chứa malware hoặc hành vi không mong muốn**.
 
-Điểm tin cậy nằm ở release Helium upstream. Trước khi thay đổi version hoặc hash, cần xem xét release upstream tương ứng.
+Trust boundary chính là release upstream và repository packaging này. Khi đổi version hoặc hash, cần review release tương ứng trước khi đưa vào cấu hình máy.
 
-## Phạm vi
+Package khai báo `sourceProvenance = [ lib.sourceTypes.binaryNativeCode ]` để phản ánh đúng rằng artifact là binary native code. fileciteturn95file0L2-L2
 
-Repository này nhỏ và mang tính cá nhân, được thiết kế theo nhu cầu của cấu hình NixOS của tôi. Compatibility, API, module options và chu kỳ cập nhật có thể thay đổi bất cứ lúc nào để phục vụ `nixos-portable`.
+## Flake
 
-Nếu sử dụng repository này ngoài cấu hình đó, hãy xem nó như một ví dụ hoặc package cá nhân, không phải nguồn package được hỗ trợ chính thức.
+Flake chỉ dùng `nixpkgs` làm input và expose package, overlay, NixOS module, Home Manager module, checks và formatter cho hai architecture. fileciteturn94file0L2-L2
+
+`flake.lock` của repository này pin `nixpkgs` độc lập với lockfile của `nixos-portable`, nhưng hai repository hiện được cấu hình để follow cùng `nixpkgs` revision khi được dùng làm input. fileciteturn116file0L2-L2
+
+## Phạm vi sử dụng
+
+Repository này public để version control và truy cập thuận tiện, nhưng mục tiêu thiết kế là **chỉ phục vụ `nixos-portable` và các máy cá nhân của tôi**.
+
+Không có cam kết về API ổn định, compatibility với hệ thống khác, backward compatibility hoặc release cadence. Module options và packaging implementation có thể thay đổi nếu cấu hình cá nhân cần thay đổi.
