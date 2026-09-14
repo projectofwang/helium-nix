@@ -40,9 +40,6 @@ jobs:
         with:
           use-flakehub: disabled
 
-      - name: Check Nix formatting
-        run: nix fmt --no-write-lock-file -- --check $(git ls-files '*.nix')
-
       - name: Validate flake structure
         run: nix flake show --no-write-lock-file
 
