@@ -35,6 +35,14 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
           helium = self.packages.${system}.helium;
+          customPackage = pkgs.runCommand "custom-helium-package" { } ''
+            mkdir -p $out/bin
+            cat > $out/bin/helium <<'EOF'
+            #!${pkgs.runtimeShell}
+            exec ${pkgs.coreutils}/bin/printf '%s\\n' "$@"
+            EOF
+            chmod +x $out/bin/helium
+          '';
         in
         {
           package = helium;
@@ -84,6 +92,58 @@
 
             touch $out
           '';
+
+          custom-package-nixos-module =
+            let
+              config =
+                (nixpkgs.lib.nixosSystem {
+                  inherit system;
+                  modules = [
+                    self.nixosModules.default
+                    {
+                      system.stateVersion = "25.11";
+                      fileSystems."/" = {
+                        device = "tmpfs";
+                        fsType = "tmpfs";
+                      };
+                      boot.loader.grub.devices = [ "/dev/sda" ];
+                      programs.helium = {
+                        enable = true;
+                        package = customPackage;
+                        flags = [ "--test-flag" ];
+                      };
+                      nixpkgs.hostPlatform = system;
+                    }
+                  ];
+                }).config.system.build.toplevel;
+            in
+            pkgs.runCommand "helium-custom-package-nixos-module" { } ''
+              touch $out
+            '';
+
+          custom-package-home-manager-module =
+            let
+              activation =
+                (home-manager.lib.homeManagerConfiguration {
+                  inherit pkgs;
+                  modules = [
+                    self.homeModules.default
+                    {
+                      home.username = "ci";
+                      home.homeDirectory = "/home/ci";
+                      home.stateVersion = "25.11";
+                      programs.helium = {
+                        enable = true;
+                        package = customPackage;
+                        flags = [ "--test-flag" ];
+                      };
+                    }
+                  ];
+                }).activationPackage;
+            in
+            pkgs.runCommand "helium-custom-package-home-manager-module" { } ''
+              touch $out
+            '';
 
           nixos-module =
             (nixpkgs.lib.nixosSystem {
