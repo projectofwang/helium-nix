@@ -49,6 +49,12 @@
               modules = [
                 self.nixosModules.default
                 {
+                  system.stateVersion = "25.11";
+                  fileSystems."/" = {
+                    device = "tmpfs";
+                    fsType = "tmpfs";
+                  };
+                  boot.loader.grub.devices = [ "/dev/sda" ];
                   programs.helium.enable = true;
                   programs.helium.flags = [ "--ozone-platform=wayland" ];
                   programs.helium.policies = {
