@@ -9,7 +9,8 @@
     let
       systems = [ "x86_64-linux" "aarch64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
-    in {
+    in
+    {
       packages = forAllSystems (system: {
         helium = nixpkgs.legacyPackages.${system}.callPackage ./package.nix { };
         default = self.packages.${system}.helium;
@@ -44,3 +45,4 @@
 
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
     };
+}
