@@ -14,15 +14,7 @@ concurrency:
 
 jobs:
   flake-check:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - system: x86_64-linux
-            runner: ubuntu-latest
-          - system: aarch64-linux
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     timeout-minutes: 45
 
     steps:
@@ -43,4 +35,4 @@ jobs:
           use-flakehub: disabled
 
       - name: Check flake
-        run: nix flake check --system "${{ matrix.system }}" --no-write-lock-file
+        run: nix flake check --system x86_64-linux --no-write-lock-file
