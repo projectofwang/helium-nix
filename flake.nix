@@ -63,30 +63,23 @@
               test -x "$binary"
 
               interpreter="$(patchelf --print-interpreter "$binary")"
-              case "$interpreter" in
-                /nix/store/*) ;;
-                *)
-                  echo "unexpected ELF interpreter for $binary: $interpreter" >&2
-                  exit 1
-                  ;
-              esac
+              if [[ "$interpreter" != /nix/store/* ]]; then
+                echo "unexpected ELF interpreter for $binary: $interpreter" >&2
+                exit 1
+              fi
 
               rpath="$(patchelf --print-rpath "$binary")"
               test -n "$rpath"
-              case ":$rpath:" in
-                *:/usr/*:*|*:/lib/*:*|*:/lib64/*:*)
-                  echo "non-Nix ELF RPATH for $binary: $rpath" >&2
-                  exit 1
-                  ;
-              esac
+              if [[ ":$rpath:" == *:/usr/*:* || ":$rpath:" == *:/lib/*:* || ":$rpath:" == *:/lib64/*:* ]]; then
+                echo "non-Nix ELF RPATH for $binary: $rpath" >&2
+                exit 1
+              fi
 
               while IFS= read -r needed; do
-                case "$needed" in
-                  /*)
-                    echo "absolute ELF dependency for $binary: $needed" >&2
-                    exit 1
-                    ;
-                esac
+                if [[ "$needed" == /* ]]; then
+                  echo "absolute ELF dependency for $binary: $needed" >&2
+                  exit 1
+                fi
               done < <(patchelf --print-needed "$binary")
             done
 
