@@ -15,7 +15,7 @@
         default = self.packages.${system}.helium;
       });
 
-      overlays.default = final: prev: {
+      overlays.default = final: _prev: {
         helium = final.callPackage ./package.nix { };
       };
 
@@ -23,9 +23,24 @@
       homeModules.default = import ./modules/home-manager.nix;
 
       checks = forAllSystems (system: {
-        helium = self.packages.${system}.helium;
+        package = self.packages.${system}.helium;
+
+        nixos-module =
+          let
+            pkgs = nixpkgs.legacyPackages.${system};
+          in
+          (nixpkgs.lib.nixosSystem {
+            inherit system;
+            modules = [
+              self.nixosModules.default
+              {
+                programs.helium.enable = true;
+                programs.helium.flags = [ "--ozone-platform=wayland" ];
+                nixpkgs.hostPlatform = system;
+              }
+            ];
+          }).config.system.build.toplevel;
       });
 
-      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixpkgs-fmt);
+      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
     };
-}
