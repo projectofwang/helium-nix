@@ -73,21 +73,12 @@ let
   pname = "helium";
   version = "0.17.0.1";
 
-  sources = {
-    x86_64-linux = {
-      url = "https://github.com/imputnet/helium-linux/releases/download/${version}/helium-bin_${version}-1_amd64.deb";
-      hash = "sha256-mFj3RECYtEGkh4Zij1NTG3mWHJV8XUnrP0gX1qsc0MI=";
-    };
-    aarch64-linux = {
-      url = "https://github.com/imputnet/helium-linux/releases/download/${version}/helium-bin_${version}-1_arm64.deb";
-      hash = "sha256-Cf87maloOatkkYB7nG8zycoxQYZGzLcxTC6ccnwDnDw=";
-    };
+  source = fetchurl {
+    url = "https://github.com/imputnet/helium-linux/releases/download/${version}/helium-bin_${version}-1_amd64.deb";
+    hash = "sha256-mFj3RECYtEGkh4Zij1NTG3mWHJV8XUnrP0gX1qsc0MI=";
   };
 
-  source = sources.${stdenv.hostPlatform.system}
-    or (throw "Unsupported system: ${stdenv.hostPlatform.system}");
-
-  inherit (lib) optionalString makeLibraryPath makeSearchPathOutput makeBinPath;
+  inherit (lib) makeLibraryPath makeSearchPathOutput makeBinPath;
 
   deps = [
     stdenv.cc.cc glib gtk3 gtk4 nss nspr libGL libgbm libdrm libxkbcommon
@@ -100,8 +91,7 @@ let
   ];
 
   libPath = makeLibraryPath deps
-    + optionalString stdenv.hostPlatform.is64bit
-      (":" + makeSearchPathOutput "lib" "lib64" deps)
+    + ":" + makeSearchPathOutput "lib" "lib64" deps
     + ":$out/opt/helium";
 
   fontsConf = makeFontsConf {
@@ -115,7 +105,7 @@ let
 in
 stdenv.mkDerivation {
   inherit pname version;
-  src = fetchurl source;
+  src = source;
 
   dontConfigure = true;
   dontBuild = true;
@@ -193,7 +183,7 @@ stdenv.mkDerivation {
     description = "Private, fast, and honest web browser based on Chromium";
     license = lib.licenses.gpl3Only;
     sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
-    platforms = [ "x86_64-linux" "aarch64-linux" ];
+    platforms = [ "x86_64-linux" ];
     mainProgram = "helium";
   };
 }
