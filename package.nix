@@ -1,72 +1,73 @@
-{ lib
-, stdenv
-, fetchurl
-, dpkg
-, patchelf
-, makeWrapper
-, wrapGAppsHook3
-, makeFontsConf
-, symlinkJoin
-, qt6
-, glib
-, gsettings-desktop-schemas
-, gtk3
-, gtk4
-, adwaita-icon-theme
-, nss
-, nspr
-, libGL
-, libgbm
-, libdrm
-, libxkbcommon
-, libX11
-, libXcomposite
-, libXdamage
-, libXext
-, libXfixes
-, libXrandr
-, libXrender
-, libxcb
-, libxshmfence
-, libXi
-, libXcursor
-, libXft
-, libXScrnSaver
-, libXtst
-, libSM
-, libICE
-, alsa-lib
-, alsa-plugins
-, dbus
-, cups
-, ffmpeg
-, libva
-, pipewire
-, wayland
-, vulkan-loader
-, systemd
-, xdg-utils
-, coreutils
-, pango
-, cairo
-, gdk-pixbuf
-, atk
-, at-spi2-atk
-, at-spi2-core
-, freetype
-, fontconfig
-, libuuid
-, expat
-, zlib
-, libxml2
-, libkrb5
-, snappy
-, udev
-, libXt
-, binutils
-, noto-fonts-cjk-sans
-, noto-fonts-cjk-serif
-, flags ? [ ]
+{
+  lib,
+  stdenv,
+  fetchurl,
+  dpkg,
+  patchelf,
+  makeWrapper,
+  wrapGAppsHook3,
+  makeFontsConf,
+  symlinkJoin,
+  qt6,
+  glib,
+  gsettings-desktop-schemas,
+  gtk3,
+  gtk4,
+  adwaita-icon-theme,
+  nss,
+  nspr,
+  libGL,
+  libgbm,
+  libdrm,
+  libxkbcommon,
+  libX11,
+  libXcomposite,
+  libXdamage,
+  libXext,
+  libXfixes,
+  libXrandr,
+  libXrender,
+  libxcb,
+  libxshmfence,
+  libXi,
+  libXcursor,
+  libXft,
+  libXScrnSaver,
+  libXtst,
+  libSM,
+  libICE,
+  alsa-lib,
+  alsa-plugins,
+  dbus,
+  cups,
+  ffmpeg,
+  libva,
+  pipewire,
+  wayland,
+  vulkan-loader,
+  systemd,
+  xdg-utils,
+  coreutils,
+  pango,
+  cairo,
+  gdk-pixbuf,
+  atk,
+  at-spi2-atk,
+  at-spi2-core,
+  freetype,
+  fontconfig,
+  libuuid,
+  expat,
+  zlib,
+  libxml2,
+  libkrb5,
+  snappy,
+  udev,
+  libXt,
+  binutils,
+  noto-fonts-cjk-sans,
+  noto-fonts-cjk-serif,
+  flags ? [ ],
 }:
 
 let
@@ -81,26 +82,74 @@ let
   inherit (lib) makeLibraryPath makeSearchPathOutput makeBinPath;
 
   deps = [
-    stdenv.cc.cc glib gtk3 gtk4 nss nspr libGL libgbm libdrm libxkbcommon
-    libX11 libXcomposite libXdamage libXext libXfixes libXrandr
-    libXrender libxcb libxshmfence libXi libXcursor libXft libXScrnSaver
-    libXtst libSM libICE alsa-lib dbus cups ffmpeg libva pipewire wayland
-    vulkan-loader systemd pango cairo gdk-pixbuf atk at-spi2-atk
-    at-spi2-core freetype fontconfig libuuid expat zlib libxml2 libXt
-    libkrb5 snappy udev
+    stdenv.cc.cc
+    glib
+    gtk3
+    gtk4
+    nss
+    nspr
+    libGL
+    libgbm
+    libdrm
+    libxkbcommon
+    libX11
+    libXcomposite
+    libXdamage
+    libXext
+    libXfixes
+    libXrandr
+    libXrender
+    libxcb
+    libxshmfence
+    libXi
+    libXcursor
+    libXft
+    libXScrnSaver
+    libXtst
+    libSM
+    libICE
+    alsa-lib
+    dbus
+    cups
+    ffmpeg
+    libva
+    pipewire
+    wayland
+    vulkan-loader
+    systemd
+    pango
+    cairo
+    gdk-pixbuf
+    atk
+    at-spi2-atk
+    at-spi2-core
+    freetype
+    fontconfig
+    libuuid
+    expat
+    zlib
+    libxml2
+    libXt
+    libkrb5
+    snappy
+    udev
   ];
 
-  libPath = makeLibraryPath deps
-    + ":" + makeSearchPathOutput "lib" "lib64" deps
-    + ":$out/opt/helium";
+  libPath = makeLibraryPath deps + ":" + makeSearchPathOutput "lib" "lib64" deps + ":$out/opt/helium";
 
   fontsConf = makeFontsConf {
-    fontDirectories = [ noto-fonts-cjk-sans noto-fonts-cjk-serif ];
+    fontDirectories = [
+      noto-fonts-cjk-sans
+      noto-fonts-cjk-serif
+    ];
   };
 
   alsaPluginDirectory = symlinkJoin {
     name = "helium-alsa-plugins";
-    paths = [ "${pipewire}/lib/alsa-lib" "${alsa-plugins}/lib/alsa-lib" ];
+    paths = [
+      "${pipewire}/lib/alsa-lib"
+      "${alsa-plugins}/lib/alsa-lib"
+    ];
   };
 in
 stdenv.mkDerivation {
@@ -113,14 +162,29 @@ stdenv.mkDerivation {
   dontStrip = true;
 
   nativeBuildInputs = [
-    patchelf makeWrapper wrapGAppsHook3 qt6.wrapQtAppsHook dpkg binutils
+    patchelf
+    makeWrapper
+    wrapGAppsHook3
+    qt6.wrapQtAppsHook
+    dpkg
+    binutils
   ];
 
   dontWrapQtApps = true;
 
   buildInputs = [
-    glib gsettings-desktop-schemas gtk3 gtk4 adwaita-icon-theme
-    qt6.qtbase qt6.qtwayland libXt libkrb5 snappy udev systemd
+    glib
+    gsettings-desktop-schemas
+    gtk3
+    gtk4
+    adwaita-icon-theme
+    qt6.qtbase
+    qt6.qtwayland
+    libXt
+    libkrb5
+    snappy
+    udev
+    systemd
   ];
 
   unpackPhase = ''
@@ -170,7 +234,12 @@ stdenv.mkDerivation {
     gappsWrapperArgs+=(
       --prefix LD_LIBRARY_PATH : "${libPath}"
       --set ALSA_PLUGIN_DIR "${alsaPluginDirectory}"
-      --prefix PATH : "${makeBinPath [ xdg-utils coreutils ]}"
+      --prefix PATH : "${
+        makeBinPath [
+          xdg-utils
+          coreutils
+        ]
+      }"
       --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto}}"
       --set CHROME_VERSION_EXTRA nix
       --set FONTCONFIG_FILE "${fontsConf}"

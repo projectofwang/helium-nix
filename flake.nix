@@ -9,11 +9,12 @@
     };
   };
 
-  outputs = inputs@{
-    self,
-    nixpkgs,
-    home-manager,
-  }:
+  outputs =
+    inputs@{
+      self,
+      nixpkgs,
+      home-manager,
+    }:
     let
       systems = [ "x86_64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
@@ -31,7 +32,8 @@
       nixosModules.default = import ./modules/nixos.nix;
       homeModules.default = import ./modules/home-manager.nix;
 
-      checks = forAllSystems (system:
+      checks = forAllSystems (
+        system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
           helium = self.packages.${system}.helium;
@@ -58,7 +60,7 @@
                 modules = [
                   self.nixosModules.default
                   {
-                    system.stateVersion = "25.11";
+                    system.stateVersion = "26.05";
                     fileSystems."/" = {
                       device = "tmpfs";
                       fsType = "tmpfs";
@@ -89,7 +91,7 @@
                     {
                       home.username = "ci";
                       home.homeDirectory = "/home/ci";
-                      home.stateVersion = "25.11";
+                      home.stateVersion = "26.05";
                       programs.helium = {
                         enable = true;
                         package = customPackage;
@@ -110,7 +112,7 @@
               modules = [
                 self.nixosModules.default
                 {
-                  system.stateVersion = "25.11";
+                  system.stateVersion = "26.05";
                   fileSystems."/" = {
                     device = "tmpfs";
                     fsType = "tmpfs";
@@ -135,7 +137,7 @@
                 {
                   home.username = "ci";
                   home.homeDirectory = "/home/ci";
-                  home.stateVersion = "25.11";
+                  home.stateVersion = "26.05";
                   programs.helium.enable = true;
                   programs.helium.flags = [ "--ozone-platform=wayland" ];
                   programs.helium.policies = {
@@ -145,7 +147,8 @@
                 }
               ];
             }).activationPackage;
-        });
+        }
+      );
 
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
     };
