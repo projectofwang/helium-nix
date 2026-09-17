@@ -59,6 +59,33 @@ jobs:
           echo "version=$latest" >> "$GITHUB_OUTPUT"
           echo "changed=$([[ "$current" != "$latest" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
+      - name: Prepare update branch
+        if: steps.release.outputs.changed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          branch="automation/helium-${VERSION}"
+
+          if gh pr list --head "$branch" --state open --json number --jq 'length' | grep -q '^0$'; then
+            echo "No open pull request exists for ${branch}."
+          else
+            echo "Open pull request already exists for ${branch}; nothing to do."
+            exit 0
+          fi
+
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            echo "Reusing existing remote branch ${branch}."
+            git fetch --no-tags origin "$branch"
+            git switch -c "$branch" --track "origin/$branch"
+          else
+            echo "Creating new branch ${branch}."
+            git switch -c "$branch"
+          fi
+
       - name: Update package source
         if: steps.release.outputs.changed == 'true'
         shell: bash
@@ -102,6 +129,28 @@ jobs:
 
           echo "Updated Helium to ${VERSION} with Nix-computed source hash ${hash}."
 
+      - name: Commit and push update
+        if: steps.release.outputs.changed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet -- package.nix; then
+            echo "package.nix already contains the requested release and hash."
+            exit 0
+          fi
+
+          git add package.nix
+          git commit -m "chore: update Helium to ${VERSION}"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --set-upstream origin "automation/helium-${VERSION}"
+
       - name: Create update pull request
         if: steps.release.outputs.changed == 'true'
         shell: bash
@@ -111,20 +160,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          if git diff --quiet -- package.nix; then
-            echo "No package change after source update."
-            exit 0
-          fi
-
           branch="automation/helium-${VERSION}"
-          git switch -c "$branch"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.nix
-          git commit -m "chore: update Helium to ${VERSION}"
-
-          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push --set-upstream origin "$branch"
 
           if gh pr list --head "$branch" --state open --json number --jq 'length' | grep -q '^0$'; then
             gh pr create \
@@ -132,4 +168,6 @@ jobs:
               --head "$branch" \
               --title "chore: update Helium to ${VERSION}" \
               --body "Automated update to the latest Helium Linux release (${VERSION}). The upstream AMD64 .deb was downloaded from the official Helium Linux release and its SHA-256 SRI hash was computed by Nix. CI must pass before merge."
+          else
+            echo "Open pull request already exists for ${branch}."
           fi
