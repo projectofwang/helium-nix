@@ -88,11 +88,11 @@ jobs:
           path = Path("package.nix")
           text = path.read_text()
 
-          version_pattern = r'(?m)^(\\s*version = ")[^"]+(";)$'
-          hash_pattern = r'(?m)^(\\s*hash = ")[^"]+(";)$'
+          version_pattern = r'(?m)^(\s*version = ")[^"]+(";)$'
+          hash_pattern = r'(?m)^(\s*hash = ")[^"]+(";)$'
 
-          text, version_count = re.subn(version_pattern, rf'\\g<1>{version}\\g<2>', text, count=1)
-          text, hash_count = re.subn(hash_pattern, rf'\\g<1>{hash_value}\\g<2>', text, count=1)
+          text, version_count = re.subn(version_pattern, rf'\g<1>{version}\g<2>', text, count=1)
+          text, hash_count = re.subn(hash_pattern, rf'\g<1>{hash_value}\g<2>', text, count=1)
 
           if version_count != 1 or hash_count != 1:
               raise SystemExit("package.nix version/hash fields were not updated exactly once")
