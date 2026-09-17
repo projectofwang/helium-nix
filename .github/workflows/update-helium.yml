@@ -60,6 +60,7 @@ jobs:
           echo "changed=$([[ "$current" != "$latest" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
       - name: Prepare update branch
+        id: prepare
         if: steps.release.outputs.changed == 'true'
         shell: bash
         env:
@@ -69,11 +70,11 @@ jobs:
           set -euo pipefail
 
           branch="automation/helium-${VERSION}"
+          echo "already_open=false" >> "$GITHUB_OUTPUT"
 
-          if gh pr list --head "$branch" --state open --json number --jq 'length' | grep -q '^0$'; then
-            echo "No open pull request exists for ${branch}."
-          else
+          if ! gh pr list --head "$branch" --state open --json number --jq 'length' | grep -q '^0$'; then
             echo "Open pull request already exists for ${branch}; nothing to do."
+            echo "already_open=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -87,7 +88,7 @@ jobs:
           fi
 
       - name: Update package source
-        if: steps.release.outputs.changed == 'true'
+        if: steps.release.outputs.changed == 'true' && steps.prepare.outputs.already_open != 'true'
         shell: bash
         env:
           VERSION: ${{ steps.release.outputs.version }}
@@ -130,7 +131,7 @@ jobs:
           echo "Updated Helium to ${VERSION} with Nix-computed source hash ${hash}."
 
       - name: Commit and push update
-        if: steps.release.outputs.changed == 'true'
+        if: steps.release.outputs.changed == 'true' && steps.prepare.outputs.already_open != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -152,7 +153,7 @@ jobs:
           git push --set-upstream origin "automation/helium-${VERSION}"
 
       - name: Create update pull request
-        if: steps.release.outputs.changed == 'true'
+        if: steps.release.outputs.changed == 'true' && steps.prepare.outputs.already_open != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
