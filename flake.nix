@@ -118,7 +118,7 @@
               export XDG_STATE_HOME=/tmp/helium-home-manager-state
               mkdir -p "$HOME" "$XDG_STATE_HOME"
 
-              ${activation}/activate --driver-version 1
+              PATH=${pkgs.nix}/bin:$PATH ${activation}/activate --driver-version 1
 
               helium="$(find "$HOME" -path '*/bin/helium' -print -quit)"
               test -n "$helium"
