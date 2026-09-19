@@ -92,37 +92,35 @@
 
           custom-package-home-manager-module =
             let
-              activation =
-                (home-manager.lib.homeManagerConfiguration {
-                  inherit pkgs;
-                  modules = [
-                    self.homeModules.default
-                    {
-                      home.username = "ci";
-                      home.homeDirectory = "/tmp/helium-home-manager-test";
-                      home.stateVersion = "26.05";
-                      programs.helium = {
-                        enable = true;
-                        package = customPackage;
-                        flags = [ "--test-flag" ];
-                      };
-                    }
-                  ];
-                }).activationPackage;
+              homeConfig = home-manager.lib.homeManagerConfiguration {
+                inherit pkgs;
+                modules = [
+                  self.homeModules.default
+                  {
+                    home.username = "ci";
+                    home.homeDirectory = "/home/ci";
+                    home.stateVersion = "26.05";
+                    programs.helium = {
+                      enable = true;
+                      package = customPackage;
+                      flags = [ "--test-flag" ];
+                    };
+                  }
+                ];
+              };
+              packageMatches = nixpkgs.lib.filter (
+                candidate: (candidate.name or "") == "helium-with-flags"
+              ) homeConfig.config.home.packages;
+              selectedPackage = nixpkgs.lib.findFirst (
+                candidate: (candidate.name or "") == "helium-with-flags"
+              ) null homeConfig.config.home.packages;
             in
+            assert nixpkgs.lib.assertMsg (builtins.length packageMatches == 1)
+              "Home Manager Helium module test must install exactly one helium-with-flags package";
+            assert nixpkgs.lib.assertMsg (selectedPackage != null)
+              "Home Manager Helium module test could not locate the helium-with-flags package";
             pkgs.runCommand "helium-custom-package-home-manager-module" { } ''
-              set -euo pipefail
-
-              export HOME=/tmp/helium-home-manager-test
-              export USER=ci
-              export XDG_STATE_HOME=/tmp/helium-home-manager-state
-              mkdir -p "$HOME" "$XDG_STATE_HOME"
-
-              PATH=${pkgs.nix}/bin:$PATH ${activation}/activate --driver-version 1
-
-              helium="$(find "$HOME" -path '*/bin/helium' -print -quit)"
-              test -n "$helium"
-              "$helium" --test-flag > "$out"
+              ${selectedPackage}/bin/helium --test-flag > $out
             '';
 
           nixos-module =
