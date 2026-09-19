@@ -75,10 +75,19 @@
                   }
                 ];
               };
-              package = builtins.head systemConfig.config.environment.systemPackages;
+              packageMatches = lib.filter (
+                candidate: (candidate.name or "") == "helium-with-flags"
+              ) systemConfig.config.environment.systemPackages;
+              selectedPackage = lib.findFirst (
+                candidate: (candidate.name or "") == "helium-with-flags"
+              ) null systemConfig.config.environment.systemPackages;
             in
+            assert lib.assertMsg (builtins.length packageMatches == 1)
+              "NixOS Helium module test must install exactly one helium-with-flags package";
+            assert lib.assertMsg (selectedPackage != null)
+              "NixOS Helium module test could not locate the helium-with-flags package";
             pkgs.runCommand "helium-custom-package-nixos-module" { } ''
-              ${package}/bin/helium --test-flag > $out
+              ${selectedPackage}/bin/helium --test-flag > $out
             '';
 
           custom-package-home-manager-module =
@@ -90,7 +99,7 @@
                     self.homeModules.default
                     {
                       home.username = "ci";
-                      home.homeDirectory = "/home/ci";
+                      home.homeDirectory = "/tmp/helium-home-manager-test";
                       home.stateVersion = "26.05";
                       programs.helium = {
                         enable = true;
@@ -102,8 +111,18 @@
                 }).activationPackage;
             in
             pkgs.runCommand "helium-custom-package-home-manager-module" { } ''
-              grep -R --fixed-strings -- '--test-flag' ${activation}
-              touch $out
+              set -euo pipefail
+
+              export HOME=/tmp/helium-home-manager-test
+              export USER=ci
+              export XDG_STATE_HOME=/tmp/helium-home-manager-state
+              mkdir -p "$HOME" "$XDG_STATE_HOME"
+
+              ${activation}/activate
+
+              helium="$(find "$HOME" -type f -path '*/bin/helium' -print -quit)"
+              test -n "$helium"
+              "$helium" --test-flag > "$out"
             '';
 
           nixos-module =
