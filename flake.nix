@@ -75,16 +75,16 @@
                   }
                 ];
               };
-              packageMatches = lib.filter (
+              packageMatches = nixpkgs.lib.filter (
                 candidate: (candidate.name or "") == "helium-with-flags"
               ) systemConfig.config.environment.systemPackages;
-              selectedPackage = lib.findFirst (
+              selectedPackage = nixpkgs.lib.findFirst (
                 candidate: (candidate.name or "") == "helium-with-flags"
               ) null systemConfig.config.environment.systemPackages;
             in
-            assert lib.assertMsg (builtins.length packageMatches == 1)
+            assert nixpkgs.lib.assertMsg (builtins.length packageMatches == 1)
               "NixOS Helium module test must install exactly one helium-with-flags package";
-            assert lib.assertMsg (selectedPackage != null)
+            assert nixpkgs.lib.assertMsg (selectedPackage != null)
               "NixOS Helium module test could not locate the helium-with-flags package";
             pkgs.runCommand "helium-custom-package-nixos-module" { } ''
               ${selectedPackage}/bin/helium --test-flag > $out
