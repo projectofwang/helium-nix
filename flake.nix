@@ -75,35 +75,52 @@
                   }
                 ];
               };
-              package = builtins.head systemConfig.config.environment.systemPackages;
+              packageMatches = nixpkgs.lib.filter (
+                candidate: (candidate.name or "") == "helium-with-flags"
+              ) systemConfig.config.environment.systemPackages;
+              selectedPackage = nixpkgs.lib.findFirst (
+                candidate: (candidate.name or "") == "helium-with-flags"
+              ) null systemConfig.config.environment.systemPackages;
             in
+            assert nixpkgs.lib.assertMsg (builtins.length packageMatches == 1)
+              "NixOS Helium module test must install exactly one helium-with-flags package";
+            assert nixpkgs.lib.assertMsg (selectedPackage != null)
+              "NixOS Helium module test could not locate the helium-with-flags package";
             pkgs.runCommand "helium-custom-package-nixos-module" { } ''
-              ${package}/bin/helium --test-flag > $out
+              ${selectedPackage}/bin/helium --test-flag > $out
             '';
 
           custom-package-home-manager-module =
             let
-              activation =
-                (home-manager.lib.homeManagerConfiguration {
-                  inherit pkgs;
-                  modules = [
-                    self.homeModules.default
-                    {
-                      home.username = "ci";
-                      home.homeDirectory = "/home/ci";
-                      home.stateVersion = "26.05";
-                      programs.helium = {
-                        enable = true;
-                        package = customPackage;
-                        flags = [ "--test-flag" ];
-                      };
-                    }
-                  ];
-                }).activationPackage;
+              homeConfig = home-manager.lib.homeManagerConfiguration {
+                inherit pkgs;
+                modules = [
+                  self.homeModules.default
+                  {
+                    home.username = "ci";
+                    home.homeDirectory = "/home/ci";
+                    home.stateVersion = "26.05";
+                    programs.helium = {
+                      enable = true;
+                      package = customPackage;
+                      flags = [ "--test-flag" ];
+                    };
+                  }
+                ];
+              };
+              packageMatches = nixpkgs.lib.filter (
+                candidate: (candidate.name or "") == "helium-with-flags"
+              ) homeConfig.config.home.packages;
+              selectedPackage = nixpkgs.lib.findFirst (
+                candidate: (candidate.name or "") == "helium-with-flags"
+              ) null homeConfig.config.home.packages;
             in
+            assert nixpkgs.lib.assertMsg (builtins.length packageMatches == 1)
+              "Home Manager Helium module test must install exactly one helium-with-flags package";
+            assert nixpkgs.lib.assertMsg (selectedPackage != null)
+              "Home Manager Helium module test could not locate the helium-with-flags package";
             pkgs.runCommand "helium-custom-package-home-manager-module" { } ''
-              grep -R --fixed-strings -- '--test-flag' ${activation}
-              touch $out
+              ${selectedPackage}/bin/helium --test-flag > $out
             '';
 
           nixos-module =
