@@ -120,7 +120,7 @@
 
               ${activation}/activate
 
-              helium="$(find "$HOME" -type f -path '*/bin/helium' -print -quit)"
+              helium="$(find "$HOME" -path '*/bin/helium' -print -quit)"
               test -n "$helium"
               "$helium" --test-flag > "$out"
             '';
