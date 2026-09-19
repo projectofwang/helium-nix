@@ -101,6 +101,8 @@
                       home.username = "ci";
                       home.homeDirectory = "/tmp/helium-home-manager-test";
                       home.stateVersion = "26.05";
+                      nix.enable = true;
+                      nix.package = pkgs.nix;
                       programs.helium = {
                         enable = true;
                         package = customPackage;
