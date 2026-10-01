@@ -72,11 +72,11 @@
 
 let
   pname = "helium";
-  version = "0.17.2.1";
+  version = "0.18.2.1";
 
   source = fetchurl {
     url = "https://github.com/imputnet/helium-linux/releases/download/${version}/helium-bin_${version}-1_amd64.deb";
-    hash = "sha256-xb4AhHoTY/AE+B07jnDKJmsVrgKgKdLLHhG2TThTaSk=";
+    hash = "sha256-CfLcjqvoVqrMM7wm1VfG8RqbXnEhV1RDqMYjIrgI5bI=";
   };
 
   inherit (lib) makeLibraryPath makeSearchPathOutput makeBinPath;
