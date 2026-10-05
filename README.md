@@ -113,9 +113,9 @@ imports = [ inputs.helium.homeModules.default ];
 programs.helium.enable = true;
 ```
 
-Home Manager cài package vào user environment và hỗ trợ flags/policies ở user scope.
+Home Manager cài package vào user environment và hỗ trợ flags ở user scope.
 
-User-level policy **không được coi là equivalent với system managed policy** cho các policy cần enforcement ở cấp hệ thống.
+Option `programs.helium.policies` vẫn tồn tại nhưng **không có tác dụng trên Linux**: Helium (build Chromium non-Chrome branding) chỉ đọc machine-wide policy từ `/etc/chromium/policies`, không có cơ chế user-level policy file nào được nạp từ `$HOME`. Khi policies được set, module emit một cảnh báo qua option `warnings` của Home Manager và khuyến nghị cấu hình policy qua NixOS module.
 
 ## Overlay
 

@@ -54,8 +54,14 @@ in
   config = lib.mkIf cfg.enable {
     home.packages = [ package ];
 
-    xdg.configFile."helium/policies/managed/nixos.json" = lib.mkIf (cfg.policies != { }) {
-      text = builtins.toJSON cfg.policies;
-    };
+    warnings = lib.optionals (cfg.policies != { }) [
+      ''
+        programs.helium.policies is set, but has no effect: on Linux, Helium (built from
+        Chromium sources with non-Chrome branding) only reads machine-wide policies from
+        /etc/chromium/policies/managed and /etc/chromium/policies/recommended. There is no
+        user-level policy directory, so nothing under $HOME is ever loaded. Configure
+        policies system-wide through the NixOS module (programs.helium.policies) instead.
+      ''
+    ];
   };
 }
