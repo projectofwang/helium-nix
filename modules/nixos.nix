@@ -16,6 +16,14 @@ let
       rm -f $out/bin/helium
       makeWrapper ${cfg.package}/bin/helium $out/bin/helium \
         ${lib.concatMapStringsSep " " (flag: "--add-flags ${lib.escapeShellArg flag}") cfg.flags}
+
+      # Re-create the desktop entry so it points at the wrapped binary;
+      # skip when the package ships no desktop file (e.g. test stubs).
+      if [ -f ${cfg.package}/share/applications/helium.desktop ]; then
+        rm -f $out/share/applications/helium.desktop
+        substitute ${cfg.package}/share/applications/helium.desktop $out/share/applications/helium.desktop \
+          --replace-fail "${cfg.package}/bin/helium" "$out/bin/helium"
+      fi
     '';
   };
 in
