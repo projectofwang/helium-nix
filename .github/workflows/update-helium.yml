@@ -16,7 +16,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Check out repository
@@ -130,6 +130,10 @@ jobs:
 
           echo "Updated Helium to ${VERSION} with Nix-computed source hash ${hash}."
 
+      - name: Check flake
+        if: steps.release.outputs.changed == 'true' && steps.prepare.outputs.already_open != 'true'
+        run: nix flake check --system x86_64-linux --no-write-lock-file
+
       - name: Commit and push update
         if: steps.release.outputs.changed == 'true' && steps.prepare.outputs.already_open != 'true'
         shell: bash
@@ -168,7 +172,7 @@ jobs:
               --base main \
               --head "$branch" \
               --title "chore: update Helium to ${VERSION}" \
-              --body "Automated update to the latest Helium Linux release (${VERSION}). The upstream AMD64 .deb was downloaded from the official Helium Linux release and its SHA-256 SRI hash was computed by Nix. CI must pass before merge."
+              --body "Automated update to the latest Helium Linux release (${VERSION}). The upstream AMD64 .deb was downloaded from the official Helium Linux release and its SHA-256 SRI hash was computed by Nix. The update workflow itself ran nix flake check on this revision before opening this PR. Note: the Check workflow does not run automatically on this PR because it was created with GITHUB_TOKEN — a repository owner must approve the Check workflow run manually."
           else
             echo "Open pull request already exists for ${branch}."
           fi
