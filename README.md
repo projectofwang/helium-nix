@@ -103,7 +103,7 @@ programs.helium.enable = true;
 
 NixOS module cài package, tạo launcher với flags và ghi system-level managed policies khi được cấu hình.
 
-Managed policy trên NixOS được ghi vào các đường dẫn Chromium/Helium Linux tương ứng. Đây là system-level configuration và khác với user-level policy của Home Manager.
+Managed policy trên NixOS được ghi vào `/etc/chromium/policies/managed/` — đường dẫn duy nhất mà Chromium/Helium trên Linux đọc machine-wide policy (build non-Chrome-branding hardcode `kPolicyPath = "/etc/chromium/policies"`; Helium không đọc `/etc/helium` hay bất kỳ policy file user-level nào). Đây là system-level configuration.
 
 ## Home Manager module
 

@@ -57,9 +57,5 @@ in
     environment.etc."chromium/policies/managed/helium-nixos.json" = lib.mkIf (cfg.policies != { }) {
       text = builtins.toJSON cfg.policies;
     };
-
-    environment.etc."helium/policies/managed/helium-nixos.json" = lib.mkIf (cfg.policies != { }) {
-      text = builtins.toJSON cfg.policies;
-    };
   };
 }
