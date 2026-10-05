@@ -71,10 +71,18 @@ jobs:
 
           branch="automation/helium-${VERSION}"
           echo "already_open=false" >> "$GITHUB_OUTPUT"
+          echo "skip_version=false" >> "$GITHUB_OUTPUT"
 
           if ! gh pr list --head "$branch" --state open --json number --jq 'length' | grep -q '^0$'; then
             echo "Open pull request already exists for ${branch}; nothing to do."
             echo "already_open=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          closed_unmerged="$(gh pr list --head "$branch" --state closed --json state --jq '[.[] | select(.state == "CLOSED")] | length')"
+          if [[ "$closed_unmerged" != "0" ]]; then
+            echo "A pull request for ${branch} was previously closed without merging; skipping this version."
+            echo "skip_version=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -88,7 +96,7 @@ jobs:
           fi
 
       - name: Update package source
-        if: steps.release.outputs.changed == 'true' && steps.prepare.outputs.already_open != 'true'
+        if: steps.release.outputs.changed == 'true' && steps.prepare.outputs.already_open != 'true' && steps.prepare.outputs.skip_version != 'true'
         shell: bash
         env:
           VERSION: ${{ steps.release.outputs.version }}
@@ -131,11 +139,11 @@ jobs:
           echo "Updated Helium to ${VERSION} with Nix-computed source hash ${hash}."
 
       - name: Check flake
-        if: steps.release.outputs.changed == 'true' && steps.prepare.outputs.already_open != 'true'
+        if: steps.release.outputs.changed == 'true' && steps.prepare.outputs.already_open != 'true' && steps.prepare.outputs.skip_version != 'true'
         run: nix flake check --system x86_64-linux --no-write-lock-file
 
       - name: Commit and push update
-        if: steps.release.outputs.changed == 'true' && steps.prepare.outputs.already_open != 'true'
+        if: steps.release.outputs.changed == 'true' && steps.prepare.outputs.already_open != 'true' && steps.prepare.outputs.skip_version != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -157,7 +165,7 @@ jobs:
           git push --set-upstream origin "automation/helium-${VERSION}"
 
       - name: Create update pull request
-        if: steps.release.outputs.changed == 'true' && steps.prepare.outputs.already_open != 'true'
+        if: steps.release.outputs.changed == 'true' && steps.prepare.outputs.already_open != 'true' && steps.prepare.outputs.skip_version != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
