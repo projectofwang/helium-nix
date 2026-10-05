@@ -213,7 +213,8 @@ stdenv.mkDerivation {
     done
 
     substituteInPlace $out/opt/helium/helium-wrapper \
-      --replace-fail '$HERE/helium' "$out/opt/helium/helium"
+      --replace-fail '$HERE/helium' "$out/opt/helium/helium" \
+      --replace-fail 'CHROME_VERSION_EXTRA=deb' 'CHROME_VERSION_EXTRA="nix"'
 
     ln -sf $out/opt/helium/helium-wrapper $out/bin/helium
 

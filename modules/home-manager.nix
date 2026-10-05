@@ -16,6 +16,14 @@ let
       rm -f $out/bin/helium
       makeWrapper ${cfg.package}/bin/helium $out/bin/helium \
         ${lib.concatMapStringsSep " " (flag: "--add-flags ${lib.escapeShellArg flag}") cfg.flags}
+
+      # Re-create the desktop entry so it points at the wrapped binary;
+      # skip when the package ships no desktop file (e.g. test stubs).
+      if [ -f ${cfg.package}/share/applications/helium.desktop ]; then
+        rm -f $out/share/applications/helium.desktop
+        substitute ${cfg.package}/share/applications/helium.desktop $out/share/applications/helium.desktop \
+          --replace-fail "${cfg.package}/bin/helium" "$out/bin/helium"
+      fi
     '';
   };
 in
@@ -46,8 +54,14 @@ in
   config = lib.mkIf cfg.enable {
     home.packages = [ package ];
 
-    xdg.configFile."helium/policies/managed/nixos.json" = lib.mkIf (cfg.policies != { }) {
-      text = builtins.toJSON cfg.policies;
-    };
+    warnings = lib.optionals (cfg.policies != { }) [
+      ''
+        programs.helium.policies is set, but has no effect: on Linux, Helium (built from
+        Chromium sources with non-Chrome branding) only reads machine-wide policies from
+        /etc/chromium/policies/managed and /etc/chromium/policies/recommended. There is no
+        user-level policy directory, so nothing under $HOME is ever loaded. Configure
+        policies system-wide through the NixOS module (programs.helium.policies) instead.
+      ''
+    ];
   };
 }

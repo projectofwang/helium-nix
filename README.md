@@ -103,7 +103,7 @@ programs.helium.enable = true;
 
 NixOS module cài package, tạo launcher với flags và ghi system-level managed policies khi được cấu hình.
 
-Managed policy trên NixOS được ghi vào các đường dẫn Chromium/Helium Linux tương ứng. Đây là system-level configuration và khác với user-level policy của Home Manager.
+Managed policy trên NixOS được ghi vào `/etc/chromium/policies/managed/` — đường dẫn duy nhất mà Chromium/Helium trên Linux đọc machine-wide policy (build non-Chrome-branding hardcode `kPolicyPath = "/etc/chromium/policies"`; Helium không đọc `/etc/helium` hay bất kỳ policy file user-level nào). Đây là system-level configuration.
 
 ## Home Manager module
 
@@ -113,9 +113,9 @@ imports = [ inputs.helium.homeModules.default ];
 programs.helium.enable = true;
 ```
 
-Home Manager cài package vào user environment và hỗ trợ flags/policies ở user scope.
+Home Manager cài package vào user environment và hỗ trợ flags ở user scope.
 
-User-level policy **không được coi là equivalent với system managed policy** cho các policy cần enforcement ở cấp hệ thống.
+Option `programs.helium.policies` vẫn tồn tại nhưng **không có tác dụng trên Linux**: Helium (build Chromium non-Chrome branding) chỉ đọc machine-wide policy từ `/etc/chromium/policies`, không có cơ chế user-level policy file nào được nạp từ `$HOME`. Khi policies được set, module emit một cảnh báo qua option `warnings` của Home Manager và khuyến nghị cấu hình policy qua NixOS module.
 
 ## Overlay
 
@@ -169,9 +169,9 @@ Khi upstream phát hành version mới, workflow:
 3. tải đúng artifact chính thức `helium-bin_<version>-1_amd64.deb`;
 4. tính SHA-256 SRI hash bằng Nix;
 5. cập nhật `version` và `hash` trong `package.nix`;
-6. tạo branch update;
-7. mở pull request;
-8. để CI kiểm tra package, runtime smoke test và modules trước khi merge.
+6. chạy `nix flake check --system x86_64-linux --no-write-lock-file` ngay trong workflow để xác thực bản update;
+7. tạo branch update;
+8. mở pull request.
 
 Flow:
 
@@ -191,16 +191,16 @@ upstream release
  package.nix update
       │
       ▼
+ nix flake check (trong update workflow)
+      │
+      ▼
  pull request
       │
       ▼
- CI validation
-      │
-      ▼
- merge
+ owner duyệt Check run + merge
 ```
 
-Workflow **không tự động merge release vào `main`**. Đây là intentional safety gate: upstream release mới phải vượt qua CI trước khi trở thành revision chính thức của repository.
+Workflow **không tự động merge release vào `main`**. Đây là intentional safety gate. Lưu ý: PR do bot tạo bằng `GITHUB_TOKEN` nên workflow Check trên PR không tự chạy — owner phải duyệt (approve) workflow run một lần thủ công; để bù lại, bản update đã được `nix flake check` xác thực ngay bên trong update workflow trước khi PR được mở.
 
 Không dùng floating release URL và không dùng `lib.fakeHash` trong package cuối cùng.
 
@@ -239,6 +239,8 @@ nix flake check --system x86_64-linux --no-write-lock-file
 ```
 
 Các checks bao gồm package evaluation/build, runtime smoke test và các NixOS/Home Manager module variants.
+
+Update workflow cũng chạy cùng lệnh `nix flake check` ngay sau khi bump version/hash, nên bản update được xác thực kể cả khi workflow Check trên PR chưa được owner duyệt (PR bot-created bằng `GITHUB_TOKEN` không tự trigger Check).
 
 Workflow sử dụng permissions giới hạn, checkout không giữ credentials và các third-party Actions quan trọng được pin bằng commit SHA.
 
@@ -281,6 +283,6 @@ Việc sử dụng repository cho mục đích cá nhân không thay đổi lice
 - **Reproducible** — artifact có fixed hash.
 - **No fake hash** — không commit `fakeHash`.
 - **No floating binaries** — không tải release bằng URL không cố định.
-- **CI before merge** — release update phải qua validation.
+- **Validation before merge** — update workflow tự chạy `nix flake check` trước khi mở PR; Check workflow trên PR do bot tạo cần owner duyệt run thủ công.
 - **x86_64 only** — không giả lập support cho platform ngoài phạm vi.
 - **Clear boundary** — package repository xử lý packaging; machine-specific policy nằm ở `nixos-portable`.
